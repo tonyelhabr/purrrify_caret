@@ -1,0 +1,179 @@
+---
+params:
+  eval_slow: true
+title: ""
+author: ""
+date: ""
+output:
+  html_document:
+    toc: true
+---
+
+```{r setup, include = FALSE}
+knitr::opts_knit$set(root.dir = rprojroot::find_rstudio_root_file())
+knitr::opts_chunk$set(
+  echo = TRUE,
+  # cache = TRUE,
+  cache = FALSE,
+  include = TRUE,
+  fig.align = "center",
+  results = "asis",
+  fig.width = 6,
+  fig.height = 6,
+  # out.width = 6,
+  # out.height = 6,
+  warning = FALSE,
+  message = FALSE
+)
+options(scipen = 1, digits = 2)
+```
+
+```{r config, include = FALSE}
+config <-
+  list(
+    export_data = TRUE,
+    dir_data = "data",
+    export_viz = TRUE,
+    dir_viz = "figs"
+  )
+```
+
+## Introduction
+
+HW 6 methods...
+
+```{r grid_methods_knnsvm}
+grid_methods_knnsvm <-
+  tibble(
+    method_desc = c("KNN, Rectangular", "KNN, Optimal", "SVM, Linear", "SVM, Radial"),
+    method = c("kknn_rect", "kknn_optm", "ksvm_linear", "ksvm_radial")
+  ) %>% 
+  crossing(
+    grid_preproc
+  ) %>% 
+  unite(method_desc, method_desc, preprocess_desc, sep = ", ") %>% 
+  mutate(idx_method = row_number()) %>% 
+  select(idx_method, everything())
+grid_methods_knnsvm
+```
+
+```{r setup_caret_knnsvm_funcs}
+setup_caret_base_knnsvm <-
+  function(preproc = "scale") {
+    list(
+      form = fmla_diabetes,
+      data = PimaIndiansDiabetes,
+      preProcess = ifelse(preproc == "none", NULL, preproc),
+      trControl = caret::trainControl(method = "cv", number = 5),
+      metric = "Accuracy"
+    )
+  }
+
+setup_caret_kknn_rect <-
+  function() {
+    list(
+      method = "kknn",
+      tuneGrid =
+        expand.grid(kmax = seq(5, 15, by = 5),
+                    distance = seq(1.2, 2, by = 0.4),
+                    # distance = 2,
+                    kernel = "rectangular",
+                    stringsAsFactors = FALSE)
+    )
+  }
+
+setup_caret_kknn_optm <-
+  function() {
+    list(
+      method = "kknn",
+      tuneGrid =
+        expand.grid(kmax = seq(5, 15, by = 5),
+                    distance = 2,
+                    kernel = "optimal",
+                    stringsAsFactors = FALSE)
+    )
+  }
+
+setup_caret_ksvm_linear <-
+  function() {
+    list(
+      method = "svmLinear",
+      tuneGrid = data.frame(C = c(0.25, 0.5, 1))
+    )
+  }
+
+setup_caret_ksvm_radial <-
+  function() {
+    list(
+      method = "svmRadialCost",
+      tuneGrid = data.frame(C = c(0.25, 0.5, 1))
+    )
+  }
+
+get_caret_knnsvm_args <-
+  function(method = NULL, preproc = "scale") {
+    c(
+      do.call("setup_caret_base_knnsvm", args = list(preproc = preproc)),
+      do.call(sprintf("setup_caret_%s", method), args = list())
+    )
+  }
+
+fit_caret_knnsvm <-
+  function(method = NULL, preproc = NULL) {
+    do_call_with(
+      caret::train,
+      get_caret_knnsvm_args(method = method, preproc = preproc)
+    )
+  }
+```
+
+```{r fits_diabetes_knnsvm, eval = params$eval_slow}
+set.seed(42)
+fits_diabetes_knnsvm <-
+  grid_methods_knnsvm %>%
+  # slice(-c(1:2)) %>% 
+  group_by(idx_method, method_desc) %>% 
+  nest() %>% 
+  mutate(fit = purrr::map(data, ~fit_caret_knnsvm(method = .x$method, preproc = .x$preproc))) %>% 
+  ungroup()
+fits_diabetes_knnsvm
+```
+
+```{r fits_diabetes_knnsvm_export, include = FALSE, eval = params$eval_slow}
+teproj::export_ext_rds(
+  fits_diabetes_knnsvm,
+  export = TRUE,
+  dir = "data"
+)
+```
+
+```{r fits_diabetes_knnsvm_import, include = FALSE}
+fits_diabetes_knnsvm <-
+  teproj::import_ext_rds(
+    fits_diabetes_knnsvm,
+    dir = "data"
+  )
+```
+
+### Quantifying Model Quality
+
+```{r summ_diabetes_knnsvm}
+summ_diabetes_knnsvm <-
+  fits_diabetes_knnsvm %>%
+  unnest_caret_results() %>% 
+  select(-matches("SD")) %>% 
+  arrange(desc(Accuracy))
+summ_diabetes_knnsvm
+```
+
+```{r summ_diabetes_knnsvm_bymethod}
+summ_diabetes_knnsvm_bymethod <-
+  summ_diabetes %>% 
+  group_by(idx_method, method_desc) %>% 
+  summarise_at(vars(Accuracy), funs(min, max, mean, n = n())) %>% 
+  ungroup() %>% 
+  arrange(desc(max))
+summ_diabetes_knnsvm_bymethod
+```
+
+
