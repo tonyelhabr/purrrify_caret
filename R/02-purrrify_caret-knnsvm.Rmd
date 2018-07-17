@@ -63,7 +63,7 @@ setup_caret_base_knnsvm <-
     list(
       form = fmla_diabetes,
       data = PimaIndiansDiabetes,
-      preProcess = ifelse(preproc == "none", NULL, preproc),
+      preProcess = ifelse(preproc == "none", NA, preproc),
       trControl = caret::trainControl(method = "cv", number = 5),
       metric = "Accuracy"
     )
@@ -131,7 +131,6 @@ fit_caret_knnsvm <-
 set.seed(42)
 fits_diabetes_knnsvm <-
   grid_methods_knnsvm %>%
-  # slice(-c(1:2)) %>% 
   group_by(idx_method, method_desc) %>% 
   nest() %>% 
   mutate(fit = purrr::map(data, ~fit_caret_knnsvm(method = .x$method, preproc = .x$preproc))) %>% 
