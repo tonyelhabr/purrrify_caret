@@ -69,7 +69,7 @@ that I have been taking this summer.)
 
 ## Setup
 
-For this walkthrough, I'll be exploring the `PrimaIndiansDiabetes` data set
+For this walk-through, I'll be exploring the `PrimaIndiansDiabetes` data set
 provided by the `{mlbench}` package. This data set
 was originally collected by the 
 [National Institute of Diabetes and Digestive and Kidney Diseases](https://www.niddk.nih.gov/) and
@@ -77,7 +77,7 @@ was originally collected by the
 It consists of 768 rows and 9 variables. It is useful for practicing
 binary classification, where the 
  `diabetes` class variable (consisting of `pos` and `neg` values) is the response
-which we aim to predict.
+which I aim to predict.
 
 ```{r data}
 data("PimaIndiansDiabetes", package = "mlbench")
@@ -91,7 +91,7 @@ PimaIndiansDiabetes
 fmla_diabetes <- formula(diabetes ~ .)
 ```
 
-Additionally, we'll be using the `{tidyverse}` suite of packages---most notably
+Additionally, I'll be using the `{tidyverse}` suite of packages---most notably
 `{dplyr}`, `{purrr}`, and `{tidyr}`---as well as the `{caret}` package for its machine learning API.
 
 
@@ -104,7 +104,7 @@ library("caret")
 
 
 First, I think it's instructive to show how one might typically use `{caret}`
-to create individual models so that we can create a baseline with which to compare
+to create individual models so that I can create a baseline with which to compare
 a "many models" approach.
 
 So, let's say that I want to fit a cross-validated CART 
@@ -130,7 +130,7 @@ fit_rpart
 It's reasonable to use `{caret}` directly in the manner shown above when simply
 fitting one model.
 But, let's say that now you want to compare the previous results
-with a model fit with uncaled predictors (perhaps for pedagogical purposes. Now you copy-paste the previous
+with a model fit with un-scaled predictors (perhaps for pedagogical purposes. Now you copy-paste the previous
 statement, only modifying `preProcess` from `"scale"` to `NULL`.
 
 ```{r fit_rpart_unscaled, eval = FALSE}
@@ -148,10 +148,10 @@ fit_rpart_unscaled <-
 fit_rpart_unscaled
 ```
 
-Although we might feel bad about copying-and-pasting so much code, we
-end up with what we wanted.
+Although I might feel bad about copying-and-pasting so much code, I
+end up with what I wanted.
 
-But now we want to try a different method--a random forest. Now we will
+But now I want to try a different method--a random forest. Now I will
 need to change the value of the `method` argument (to `"rf"`) __and__ the value of 
 `tuneGrid`---because there are different parameters to tune for a 
 random forest---__and__
@@ -172,17 +172,21 @@ fit_rf <-
 fit_rf
 ```
 
-Then, what if we want to try yet another different method (with the same formula (`form`)
-and `data`)? We would have to continue copy-pasting like this, which, of course,
+Then, what if I want to try yet another different method (with the same formula (`form`)
+and `data`)? I would have to continue copy-pasting like this, which, of course,
 can start to become tiresome.
 The [DRY principle](https://tonyelhabr.rbind.io/posts/dry-principle-make-a-package/)
 is certainly relevant here---an approach using functions to automate the re-implementation
 the "constants" among methods is superior.
 
-## split-apply-combine + `{caret}`, Approach #1
+Anyways, I think it is evident that a better approach than copy-pasting code
+endlessly can be achieved.
+With that said, next I'll demonstrate two approaches.
+While I believe the second of these is superior because it is less verbose,
+I think it's worth showing the first approach as well for instructive
+purposes.
 
-I'll show two approaches in this post. They are not too dissimilar and either may
-be deemed prefereable.
+## split-apply-combine + `{caret}`, Approach #1
 
 For this first approach,
 
@@ -202,27 +206,38 @@ such as `minsplit` for the `"rpart"`. (
 3. Finally, I define a `sprintf`-style
 function---with `method` as an argument---to call the method-specific functions (using `purrr::invoke()`).
 
-Thus, the call stack (inverted) for this approach looks like this.
+Thus, the call stack for this approach looks like this. [^diagram]
 
-```{r approach1_diagram, fig.cap = "capton"}
+[^diagram]:
+This figure is created with the awesome `{DiagrammeR}` package.
+
+```{r approach1_diagram, fig.cap = "caption"}
 DiagrammeR::grViz("
 digraph {
 
   graph [overlap = true, fontsize = 10]
 
+  node [shape = plaintext,
+        fontname = Arial]
+
+  a [label = '@@1']
+
   node [shape = box,
         fontname = Arial]
-  a [label = '@@1']
+
   b [label = '@@2']
   c [label = '@@3']
+  d [label = '@@4']
 
-  c->a
-  b->a
+  a->b
+  b->c
+  b->d
 }
 
-[1]: stringr::str_wrap('\"sprintf\" function with `method` as the primary input, binding the lists returned from the \"base\" and \"method-specific\" functions and calling `caret::train()`', 60)
-[2]: stringr::str_wrap('\"base\" `{caret}` function, defining \"constants\" across all methods and method-specific parameters to be evaluated', 60)
-[3]: stringr::str_wrap('\"Method-specific\" function, with `tuneGrid` and other method-specific parameters defined', 60)
+[1]: stringr::str_wrap('{caret} parameters', 60)
+[2]: stringr::str_wrap('sprintf function', 60)
+[3]: stringr::str_wrap('base `{caret}` function', 60)
+[4]: stringr::str_wrap('method-specific `{caret}` function', 60)
 ")
 ```
 
@@ -231,9 +246,6 @@ digraph {
 # the following function from a Stack Overflow response.
 # This is needed if wanting to specify the namespace of a function (i.e. with `pkg::function()` notation)
 # when using `invoke()`.
-```
-
-```{r invoke_with, include = FALSE, eval = FALSE}
 # invoke_with <-
 #   function(what, args, ...) {
 #     if (is.character(what)) {
@@ -317,8 +329,10 @@ when the functions are called. (See `fits_diabetes_tree`.)
 + I want to try methods without any pre-processing,
 meaning that `preProcess` should be set to `NULL` in `caret::train()`. However,
 it is not possible (to my knowledge) to explicitly define a `NULL` in a data.frame,
-so I use the surrogate `"none"`, which get ignored (i.e. treated as `NULL`)
+so I use the surrogate `"none"`, which gets ignored (i.e. treated as `NULL`)
 when passed as the value of `preProcess` to `caret::train()`.
++ The `method` and `preproc` columns are not actually used directly
+for this approach, but for the next one.
 
 
 ```{r grid_preproc}
@@ -353,9 +367,9 @@ Importantly, the calls should be made in the same order as
 that implied by `grid_methods_tree` so that the join on `idx_method`
 is "valid" (in the sense that the model fit aligns with the description).
 
-```{r fits_diabetes_tree, eval = params$eval_slow}
+```{r fits_diabetes_tree_1, eval = params$eval_slow, results = "show"}
 set.seed(42)
-fits_diabetes_tree <-
+fits_diabetes_tree_1 <-
   tribble(
     ~fit,
     fit_caret_tree_sprintf(method = "rpart", preproc = NULL),
@@ -369,18 +383,18 @@ fits_diabetes_tree <-
   left_join(grid_methods_tree) %>% 
   # Rearranging so that `fit` is the last column.
   select(-fit, everything(), fit)
-fits_diabetes_tree
+fits_diabetes_tree_1
 ```
 
-```{r fits_diabetes_tree_export, include = FALSE, eval = params$eval_slow}
+```{r fits_diabetes_tree_1_export, include = FALSE, eval = params$eval_slow}
 teproj::export_ext_rds(
-  fits_diabetes_tree,
+  fits_diabetes_tree_1,
   export = TRUE,
   dir = "data"
 )
 ```
 
-```{r fits_diabetes_tree_import, include = FALSE}
+```{r fits_diabetes_tree_1_import, include = FALSE}
 fits_diabetes_tree <-
   teproj::import_ext_rds(
     fits_diabetes_tree,
@@ -388,33 +402,56 @@ fits_diabetes_tree <-
   )
 ```
 
-There are a couple of other things that I think are worth mentioning regarding the code.
+```{r fits_diabetes_tree_1_show, echo = FALSE}
+fits_diabetes_tree_1
+```
+
+I get the results that I wanted, albeit with a bit more verbosity than
+I might have liked. (Note the repeated
+calls to the sprintf function.)
+
+There are a couple of other things that I did not mention
+before about the code that I think are worth saying.
 
 + If one does not wish to specify `tuneGrid`, then the implementation becomes simpler.
-+ Other `purrr` functions such as `partial()` or `compose()` could be used in some
++ Other `purrr` functions such as `partial()` or `compose()` could possibly be used in some
 manner to reduce some of the redundant code to an even greater extent.
++ If one only wants to implement pre-processing for certain methods, then
+the method-specific functions and the sprintf function could be re-defined
+such that `preproc` is passed as an argument to the method-specific functions and
+not used in the sprintf function.
 
 ## split-apply-combine + `{caret}`, Approach #2
 
-```{r setup_caret_knnsvm_funcs, eval = params$eval_slow}
-get_caret_args_tree <-
+For this next approach (my preferred one), the fundamental difference
+is with the use of the `grid_methods_tree` data.frame created before.
+Because the split-apply-combine recipe for this approach
+directly uses the `method` and `preproc` columns---recall
+that these are not used with the previous approach---it is necessary
+to use `grid_methods_tree` at the beginning of the modeling pipeline.
+
+Because I use the `grid_methods_tree` columns directly,
+I remove much of the verbosity seen in the prior approach.
+Now I define a function that essentially serves the same purpose as the sprintf function
+defined before---it binds the lists returned by a base `{caret}` function
+and a method-specific `{caret}` function, as well as a value for the `preProcess` argument.
+
+There is a bit of "hacky" part of the implementation here---I
+use a `switch()` statement in order to substitute `NULL` for `"none"`.
+As mentioned before, it does not seem possible to create a `NULL` value
+in a data.frame, so `"none"` serves as a "stand-in". Notably, an `ifelse()`
+call does not work because it cannot return a `NULL`.
+
+```{r fit_caret_tree}
+fit_caret_tree <-
   function(method = NULL, preproc = "scale") {
-    ret <-
+    invoke(
+      train,
       c(
         invoke(setup_caret_base_tree),
-        invoke(sprintf("setup_caret_%s", method))
+        invoke(sprintf("setup_caret_%s", method)),
+        preProcess = switch(preproc == "none", NULL, preproc)
       )
-    if(preproc != "none") {
-      ret <- c(ret, preProcess = preproc)
-    }
-    ret
-  }
-
-fit_caret_tree <-
-  function(method = NULL, preproc = NULL) {
-    invoke_with(
-      train,
-      get_caret_args_tree(method = method, preproc = preproc)
     )
   }
 ```
@@ -431,51 +468,38 @@ fits_diabetes_tree_2 <-
 fits_diabetes_tree_2
 ```
 
-### Comparison of the Two Approaches
 
+```{r fits_diabetes_tree_2_export, include = FALSE, eval = params$eval_slow}
+teproj::export_ext_rds(
+  fits_diabetes_tree_2,
+  export = TRUE,
+  dir = "data"
+)
+```
 
-|  Category|  Approach #1|  Approach #2|
-|---|---|---|
-| Method-Specific Functions| Requires functions for each method| Requires function for each method
-| User API| User must call `_sprintf()` function (with `"method"` specified as input)|  Facilitates "`nest()` +  `mutate()` + `unnest()`"|
-| `preProcess` handling| Handled with `fit_caret_*` function| Requires an extra function (i.e. `get_caret_args_*()`)|
+```{r fits_diabetes_tree_2_import, include = FALSE}
+fits_diabetes_tree_2 <-
+  teproj::import_ext_rds(
+    fits_diabetes_tree_2,
+    dir = "data"
+  )
+```
 
-Perhaps the major thing to note here is that both approaches require explicit
-functions for each method to be used. I think it would be cool if
-we could set-up another "layer of abstraction" with a `invoke()` and/or `sprintf()`,
-but I believe that this is only possible for methods with exactly the
-same `tuneGrid` parameters to set.
+```{r fits_diabetes_tree_2_show, echo = FALSE}
+fits_diabetes_tree_2
+```
 
-If achieving this extra layer of abstraction were a priority, then it could
-be done by not specifying `tuneGrid` at all. However, this approach
-gives up control over all of the tuning parameters, although specifying `tuneLength`
-might be deemed an agreeable compromise).
-
-### Alternative Approaches for Implementing `preProcess = NULL`
-
-As an alternative to passing `preproc` to `setup_caret_base_tree_2()` in approach #2,
-we could remove that argument and modify the `get_caret_args_tree()` function in the following way.
-
-The primary difficulty is dealing with `preProcess = NULL`. If one only
-wants to create models with pre-processing applied, then 
-the techniques shown above can be simplified. In particular, if only implementing
-one form of precprocessing, then the value of `preProcess` can be "hard-coded".
-Or, if simply allowing for any non-`NULL` value that is also valid
-the wrapped `train()`', the `preproc` can simply be passed as an
-argument from one function to another and set in the "base"
-function (or even the method-specific functions).
-
-Yet another alternative would be make `preproc` a parameter for each
-of the specific `setup_caret_*()` model functions. (Again, `preproc` would
-no longer need to be passed to `setup_caret_base_knnsvm()`.)
-
+Cool! This approach complies with the modern split-apply-combine approach---`dplyr::group_by()` +
+ `tidyr::nest()`,
+`dplyr::mutate()` + `purrr::map()`
+and `tidyr::unnest()`---and achieves the results which I sought.
 
 ## Quantifying Model Quality
 
-So you've got the fitted models for "many models" in a single `tibble`.
-How do you extract the results from this? `{purrr}`'s `pluck()` function
+So I've got the fitted models for "many models" in a single `tibble`.
+How do I extract the results from this? `{purrr}`'s `pluck()` function
 is helpful here, along with the `dplyr::mutate()`, `purrr::map()`, and `tidyr::unnest()`
-functions mentioned before.
+functions used before.
 
 ```{r unnest_caret_results}
 unnest_caret_results <-
@@ -486,9 +510,12 @@ unnest_caret_results <-
   }
 ```
 
+We get the same exact results with both approaches demonstrated above, so I'll only
+show the results for one here.
+
 ```{r summ_diabetes_tree}
 summ_diabetes_tree <-
-  fits_diabetes_tree %>%
+  fits_diabetes_tree_2 %>%
   unnest_caret_results() %>% 
   select(-matches("SD")) %>% 
   arrange(desc(Accuracy))
@@ -497,9 +524,20 @@ summ_diabetes_tree
 
 ## Conclusion
 
-Show how to do this when you don't want to scale across all methods...
-Possibly show different random forest methods and/or step-wise regression methods...
-Possibly split more complex stuff out to a second post.
+That's it for this tutorial. I hope that this is useful for others. (If nothing else,
+it's useful for me to review.) While the `{caret}` package does allow users
+[to create custom `train()` functions](https://topepo.github.io/caret/using-your-own-model-in-train.html), 
+I believe that this functionality
+is typically beyond what a user needs when experimenting with different approaches
+(and can be quite complex). I believe that the approach (primarily the second one) that
+I've shown in this post offers a great amount of flexibility that complements
+the many other aspects of `{caret}`'s user-friendly, dynamic API.
+
+In an actual analysis, the approach(es) that I've shown
+can be extremely useful in experimenting
+with many different methods, parameters, and data pre-processing in order
+to identify a set that is most appropriate for the context.
+
 
 ```{r save, include = FALSE}
 if(config$export_data) {

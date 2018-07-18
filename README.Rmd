@@ -35,8 +35,4 @@ purrr::map(
 
 Here are a couple of the coolest visualizations, in my opinion.
 
-![](figs/viz_schools_tea_cors_byyear.png)
-
-![](figs/viz_schools_uil_cors_byyear.png)
-
-![](figs/viz_schools_math_cors_byyear_diffs.png)
+![](figs/banner.png)
