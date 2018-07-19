@@ -22,7 +22,7 @@ paths <-
   )
 dir_output <- "output"
 purrr::map(
-  paths,
+  paths[1],
   ~rmarkdown::render(
     .x,
     output_dir = dir_output, 
@@ -35,4 +35,4 @@ purrr::map(
 
 Here are a couple of the coolest visualizations, in my opinion.
 
-![](figs/banner.png)
+![](figs/purrrify_caret-banner.png)

@@ -1,6 +1,4 @@
 ---
-params:
-  eval_slow: true
 title: ""
 author: ""
 date: ""
@@ -29,6 +27,7 @@ options(scipen = 1, digits = 2)
 ```
 
 ```{r config, include = FALSE}
+# NOTE TO SELF: Set export logicals to FALSE for blog post.
 config <-
   list(
     export_data = TRUE,
@@ -36,6 +35,16 @@ config <-
     export_viz = TRUE,
     dir_viz = "figs"
   )
+```
+
+```{r path_save, include = FALSE}
+path_save <-
+  file.path(config$dir_data, "purrrify_caret.RData")
+```
+
+```{r load, include = FALSE}
+# NOTE TO SELF: Load only for blog post.
+# load(path_save)
 ```
 
 ## Introduction
@@ -261,7 +270,7 @@ digraph {
 #   }
 ```
 
-```{r setup_caret_tree_funcs, eval = params$eval_slow}
+```{r setup_caret_tree_funcs}
 setup_caret_base_tree <-
   function() {
     list(
@@ -367,7 +376,7 @@ Importantly, the calls should be made in the same order as
 that implied by `grid_methods_tree` so that the join on `idx_method`
 is "valid" (in the sense that the model fit aligns with the description).
 
-```{r fits_diabetes_tree_1, eval = params$eval_slow, results = "show"}
+```{r fits_diabetes_tree_1, include = FALSE, results = "hide", eval = FALSE}
 set.seed(42)
 fits_diabetes_tree_1 <-
   tribble(
@@ -386,19 +395,19 @@ fits_diabetes_tree_1 <-
 fits_diabetes_tree_1
 ```
 
-```{r fits_diabetes_tree_1_export, include = FALSE, eval = params$eval_slow}
+```{r fits_diabetes_tree_1_export, include = FALSE, eval = FALSE}
 teproj::export_ext_rds(
   fits_diabetes_tree_1,
-  export = TRUE,
-  dir = "data"
+  export = config$export_data,
+  dir = config$dir_data
 )
 ```
 
 ```{r fits_diabetes_tree_1_import, include = FALSE}
-fits_diabetes_tree <-
+fits_diabetes_tree_1 <-
   teproj::import_ext_rds(
-    fits_diabetes_tree,
-    dir = "data"
+    fits_diabetes_tree_1,
+    dir = config$dir_data
   )
 ```
 
@@ -457,7 +466,7 @@ fit_caret_tree <-
 ```
 
 
-```{r fits_diabetes_tree, eval = params$eval_slow}
+```{r fits_diabetes_tree, include = FALSE, results = "hide", eval = FALSE}
 set.seed(42)
 fits_diabetes_tree_2 <-
   grid_methods_tree %>%
@@ -468,12 +477,11 @@ fits_diabetes_tree_2 <-
 fits_diabetes_tree_2
 ```
 
-
-```{r fits_diabetes_tree_2_export, include = FALSE, eval = params$eval_slow}
+```{r fits_diabetes_tree_2_export, include = FALSE, eval = FALSE}
 teproj::export_ext_rds(
   fits_diabetes_tree_2,
-  export = TRUE,
-  dir = "data"
+  export = config$export_data,
+  dir = config$dir_data
 )
 ```
 
@@ -481,7 +489,7 @@ teproj::export_ext_rds(
 fits_diabetes_tree_2 <-
   teproj::import_ext_rds(
     fits_diabetes_tree_2,
-    dir = "data"
+    dir = config$dir_data
   )
 ```
 
@@ -540,15 +548,6 @@ to identify a set that is most appropriate for the context.
 
 
 ```{r save, include = FALSE}
-if(config$export_data) {
-  vars_all <- ls()
-  vars_keep <-
-    vars_all %>% 
-    str_subset("^config$||^PimaIndiansDiabetes$|^fmla_diabetes$|^invoke_with$|^unnest_caret_results$")
-  vars_rm <- setdiff(vars_all, vars_keep)
-  rm(list = vars_rm)
-  path_save <-
-    file.path(config$dir_data, "01.RData")
-  save.image(file = path_save)
-}
+# NOTE TO SELF: Do not save with blog post.
+save.image(file = path_save)
 ```
