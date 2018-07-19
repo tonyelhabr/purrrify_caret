@@ -81,7 +81,7 @@ read_append <- . %>%
   magick::image_read() %>%
   magick::image_append()
 
-path_banner <- file.path("figs", "banner.png")
+path_banner <- file.path("figs", "purrrify_caret-banner.png")
 bkgrd %>%
   magick::image_composite(
     paths_hex %>%
