@@ -15,7 +15,7 @@ knitr::opts_chunk$set(
   cache = FALSE,
   include = TRUE,
   fig.align = "center",
-  results = "asis",
+  # results = "asis",
   fig.width = 6,
   fig.height = 6,
   # out.width = 6,
@@ -220,7 +220,7 @@ Thus, the call stack for this approach looks like this. [^diagram]
 [^diagram]:
 This figure is created with the awesome `{DiagrammeR}` package.
 
-```{r approach1_diagram, fig.cap = "caption"}
+```{r approach1_diagram, echo = FALSE}
 DiagrammeR::grViz("
 digraph {
 
@@ -245,8 +245,8 @@ digraph {
 
 [1]: stringr::str_wrap('{caret} parameters', 60)
 [2]: stringr::str_wrap('sprintf function', 60)
-[3]: stringr::str_wrap('base `{caret}` function', 60)
-[4]: stringr::str_wrap('method-specific `{caret}` function', 60)
+[3]: stringr::str_wrap('base {caret} function', 60)
+[4]: stringr::str_wrap('method-specific {caret} function', 60)
 ")
 ```
 
@@ -376,7 +376,7 @@ Importantly, the calls should be made in the same order as
 that implied by `grid_methods_tree` so that the join on `idx_method`
 is "valid" (in the sense that the model fit aligns with the description).
 
-```{r fits_diabetes_tree_1, include = FALSE, results = "hide", eval = FALSE}
+```{r fits_diabetes_tree_1, results = "hide", eval = FALSE}
 set.seed(42)
 fits_diabetes_tree_1 <-
   tribble(
@@ -466,7 +466,7 @@ fit_caret_tree <-
 ```
 
 
-```{r fits_diabetes_tree, include = FALSE, results = "hide", eval = FALSE}
+```{r fits_diabetes_tree, results = "hide", eval = FALSE}
 set.seed(42)
 fits_diabetes_tree_2 <-
   grid_methods_tree %>%
@@ -530,6 +530,55 @@ summ_diabetes_tree <-
 summ_diabetes_tree
 ```
 
+And, with the results fashioned like this, we can easily perform other typical
+`{dplyr}` actions to gain insight from the results quickly.
+
+```{r summ_diabetes_bymethod}
+summ_diabetes_bymethod <-
+  summ_diabetes_tree %>% 
+  group_by(idx_method, method_desc) %>% 
+  summarise_at(vars(Accuracy), funs(min, max, mean, n = n())) %>% 
+  ungroup() %>% 
+  arrange(desc(max))
+summ_diabetes_bymethod
+```
+
+And let's not forget about visualizing the results.
+
+```{r viz_summ_diabetes_bymethod, include = FALSE, fig.show = "hide"}
+library("teplot")
+viz_summ_diabetes_bymethod <-
+  summ_diabetes_tree %>% 
+  ggplot(aes(x = method_desc, y = Accuracy, fill = method_desc)) +
+  geom_point(size = 5, shape = 21) +
+  scale_x_discrete(labels = function(x) str_wrap(x, width = 12)) +
+  # teplot::scale_fill_set1() +
+  scale_fill_hue(l = 55) +
+  # guides(color = guide_legend(override.aes = list(size = 5))) +
+  teplot::theme_te() +
+  theme(legend.position = "none") +
+  labs(title = str_wrap("Cross Validation Accuracy of Split-Apply-Combine {caret} Models", 100),
+       caption = "By Tony ElHabr",
+       x = NULL,
+       y = NULL)
+viz_summ_diabetes_bymethod
+```
+
+```{r viz_summ_diabetes_bymethod_show, echo = FALSE, fig.height = 6, fig.width = 7}
+viz_summ_diabetes_bymethod
+```
+
+```{r viz_summ_diabetes_bymethod_export, include = FALSE}
+teproj::export_ext_png(
+  viz_summ_diabetes_bymethod,
+  export = config$export_viz,
+  dir = config$dir_viz,
+  units = "in",
+  height = 6,
+  width = 7
+)
+```
+
 ## Conclusion
 
 That's it for this tutorial. I hope that this is useful for others. (If nothing else,
@@ -548,6 +597,6 @@ to identify a set that is most appropriate for the context.
 
 
 ```{r save, include = FALSE}
-# NOTE TO SELF: Do not save with blog post.
-save.image(file = path_save)
+# NOTE TO SELF: Do not save with blog post or calling rmarkdown::render().
+# save.image(file = path_save)
 ```

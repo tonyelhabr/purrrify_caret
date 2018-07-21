@@ -32,3 +32,5 @@ Highlights
 Here are a couple of the coolest visualizations, in my opinion.
 
 ![](figs/purrrify_caret-banner.png)
+
+![](figs/viz_summ_diabetes_bymethod.png)
